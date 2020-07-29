@@ -68,6 +68,7 @@ from common.FileSystemConfig import config_filesystem
 from common.Caches import *
 from common.cpu2000 import *
 
+# 返回线程列表，对命令行输入的设置进行解析
 def get_processes(options):
     """Interprets provided options and returns a list of processes"""
 
@@ -111,18 +112,19 @@ def get_processes(options):
 
         multiprocesses.append(process)
         idx += 1
-
+    # smt 在O3CPU时候使用
     if options.smt:
         assert(options.cpu_type == "DerivO3CPU")
         return multiprocesses, idx
     else:
         return multiprocesses, 1
 
-
+# 解析参数
 parser = optparse.OptionParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
 
+# 获取--ruby配置
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
 
@@ -135,6 +137,7 @@ if args:
 multiprocesses = []
 numThreads = 1
 
+# 获取bench参数，测试程序要等于cpu个数
 if options.bench:
     apps = options.bench.split("-")
     if len(apps) != options.num_cpus:
@@ -172,40 +175,49 @@ CPUClass.numThreads = numThreads
 if options.smt and options.num_cpus > 1:
     fatal("You cannot use SMT with multiple CPUs!")
 
+# np经常代表cpu个数    
 np = options.num_cpus
 system = System(cpu = [CPUClass(cpu_id=i) for i in range(np)],
                 mem_mode = test_mem_mode,
                 mem_ranges = [AddrRange(options.mem_size)],
                 cache_line_size = options.cacheline_size)
 
+# 线程判断
 if numThreads > 1:
     system.multi_thread = True
 
+# 电压域    
 # Create a top-level voltage domain
 system.voltage_domain = VoltageDomain(voltage = options.sys_voltage)
 
+# 系统的频率域以及它的电压域
 # Create a source clock for the system and set the clock period
 system.clk_domain = SrcClockDomain(clock =  options.sys_clock,
                                    voltage_domain = system.voltage_domain)
 
+# CPU的电压域
 # Create a CPU voltage domain
 system.cpu_voltage_domain = VoltageDomain()
 
+# 对不同的CPU设置CPU内的频率域
 # Create a separate clock domain for the CPUs
 system.cpu_clk_domain = SrcClockDomain(clock = options.cpu_clock,
                                        voltage_domain =
                                        system.cpu_voltage_domain)
 
+# 判断是否有elastic tracing
 # If elastic tracing is enabled, then configure the cpu and attach the elastic
 # trace probe
 if options.elastic_trace_en:
     CpuConfig.config_etrace(CPUClass, system.cpu, options)
 
+# 设置同意的CPU时钟域    
 # All cpus belong to a common cpu_clk_domain, therefore running at a common
 # frequency.
 for cpu in system.cpu:
     cpu.clk_domain = system.cpu_clk_domain
 
+# 注意：虚拟化的CPU只能用x86模式的ISA进行SE仿真    
 if CpuConfig.is_kvm_cpu(CPUClass) or CpuConfig.is_kvm_cpu(FutureClass):
     if buildEnv['TARGET_ISA'] == 'x86':
         system.kvm_vm = KvmVM()
@@ -215,6 +227,7 @@ if CpuConfig.is_kvm_cpu(CPUClass) or CpuConfig.is_kvm_cpu(FutureClass):
     else:
         fatal("KvmCPU can only be used in SE mode with x86")
 
+# 检验（基于直观认知）：这里的Simpoint不能使用多核，而且 只能用atomic的CPU
 # Sanity check
 if options.simpoint_profile:
     if not CpuConfig.is_noncaching_cpu(CPUClass):
@@ -222,6 +235,7 @@ if options.simpoint_profile:
     if np > 1:
         fatal("SimPoint generation not supported with more than one CPUs")
 
+# 单线程模式，每个CPU共享一个线程，多线程下互不干扰，此外的情况每个CPU对应一个线程
 for i in range(np):
     if options.smt:
         system.cpu[i].workload = multiprocesses
@@ -235,17 +249,20 @@ for i in range(np):
 
     if options.checker:
         system.cpu[i].addCheckerCpu()
-
+    
+    # 获取分支预测模型
     if options.bp_type:
         bpClass = BPConfig.get(options.bp_type)
         system.cpu[i].branchPred = bpClass()
 
+    # 获取非直接分支预测模型
     if options.indirect_bp_type:
         indirectBPClass = BPConfig.get_indirect(options.indirect_bp_type)
         system.cpu[i].branchPred.indirectBranchPred = indirectBPClass()
 
     system.cpu[i].createThreads()
 
+# 使用--ruby的情况
 if options.ruby:
     Ruby.create_system(options, False, system)
     assert(options.num_cpus == len(system.ruby._cpu_ports))
@@ -255,6 +272,7 @@ if options.ruby:
     for i in range(np):
         ruby_port = system.ruby._cpu_ports[i]
 
+        # 在X86情况下，需要额外配置几个中断接口
         # Create the interrupt controller and connect its ports to Ruby
         # Note that the interrupt controller is always present but only
         # in x86 does it have message ports that need to be connected
