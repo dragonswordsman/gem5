@@ -32,7 +32,7 @@ class PIParser(ET.XMLTreeBuilder):
 
 def parse(source):
     return ET.parse(source, PIParser())
-
+# 设置输入格式以及调用流
 def main():
     global opts
     usage = "usage: %prog [options] <gem5 stats file> <gem5 config file (json)> <mcpat template file>"
@@ -53,11 +53,12 @@ def main():
     dumpMcpatOut(opts.out)
 
 def dumpMcpatOut(outFile):
-    # 抓取根节点元素
+    # 抓取根节点元素，对模板文件
     rootElem = templateMcpat.getroot()
     configMatch = re.compile(r'config\.([a-zA-Z0-9_:\.]+)')
     #replace params with values from the GEM5 config file 
     #for param in rootElem.iter('param'):
+    # 提取便签和值
     for param in rootElem.getiterator('param'):
         name = param.attrib['name']
         value = param.attrib['value']
