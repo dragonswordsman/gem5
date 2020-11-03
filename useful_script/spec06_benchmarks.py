@@ -24,9 +24,9 @@ perlbench = Process(pid=400)  # Update June 7, 2017: This used to be LiveProcess
 fullpath=SPEC_DIR+'400.perlbench'+dir_suffix
 perlbench.executable = fullpath+'perlbench' + exe_suffix
 # TEST CMDS
-# perlbench.cmd = [perlbench.executable] + ['-I.', fullpath+'/lib',fullpath+ 'attrs.pl']
+ perlbench.cmd = [perlbench.executable] + ['-I.', fullpath+'/lib',fullpath+ 'attrs.pl']
 # REF CMDS
-perlbench.cmd = [perlbench.executable] + ['-I'+fullpath+'/lib', fullpath+'/checkspam.pl', '2500', '5', '25', '11', '150', '1', '1', '1', '1']
+#perlbench.cmd = [perlbench.executable] + ['-I'+fullpath+'/lib', fullpath+'/checkspam.pl', '2500', '5', '25', '11', '150', '1', '1', '1', '1']
 # perlbench.cmd = [perlbench.executable] + ['-I'+fullpath+'/lib',fullpath+ 'diffmail.pl', '4', '800', '10', '17', '19', '300']
 # perlbench.cmd = [perlbench.executable] + ['-I'+fullpath+'/lib',fullpath+ 'splitmail.pl', '1600', '12', '26', '16', '4500']
 # perlbench.output = out_dir+'perlbench.out'
@@ -35,10 +35,12 @@ perlbench.cmd = [perlbench.executable] + ['-I'+fullpath+'/lib', fullpath+'/check
 bzip2 = Process(pid=401)  # Update June 7, 2017: This used to be LiveProcess()
 fullpath=SPEC_DIR+'401.bzip2'+dir_suffix
 bzip2.executable = fullpath+'bzip2' + exe_suffix
+data = SPEC_DIR+'401.bzip2/data/all/input/input.program'
+bzip2.cmd = [bzip2.executable] + [data, '5']
 # TEST CMDS
 # bzip2.cmd = [bzip2.executable] + [fullpath+'input.program', '5']
 # REF CMDS
-bzip2.cmd = [bzip2.executable] + [fullpath+'input.source', '280']
+# bzip2.cmd = [bzip2.executable] + [fullpath+'input.source', '280']
 # bzip2.cmd = [bzip2.executable] + [fullpath+'chicken.jpg', '30']
 # bzip2.cmd = [bzip2.executable] + [fullpath+'liberty.jpg', '30']
 # bzip2.cmd = [bzip2.executable] + [fullpath+'input.program', '280']
